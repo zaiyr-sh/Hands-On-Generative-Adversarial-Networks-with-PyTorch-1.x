@@ -14,8 +14,10 @@ import torchvision.utils as vutils
 
 import utils
 
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
-CUDA = True     # Change to False for CPU training
+CUDA = False     # Change to False for CPU training
 DATA_PATH = '~/Data/mnist'
 # DATA_PATH = '/media/john/FastData/CelebA'
 # DATA_PATH = '/media/john/FastData/lsun'
@@ -50,45 +52,7 @@ torch.manual_seed(seed)
 if CUDA:
     torch.cuda.manual_seed(seed)
 cudnn.benchmark = True      # May train faster but cost more memory
-
-dataset = dset.MNIST(root=DATA_PATH, download=True,
-                     transform=transforms.Compose([
-                     transforms.Resize(X_DIM),
-                     transforms.ToTensor(),
-                     transforms.Normalize((0.5,), (0.5,))
-                     ]))
-# dataset = dset.ImageFolder(root=DATA_PATH,
-#                            transform=transforms.Compose([
-#                            transforms.Resize(X_DIM),
-#                            transforms.CenterCrop(X_DIM),
-#                            transforms.ToTensor(),
-#                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-#                            ]))
-# dataset = dset.LSUN(root=DATA_PATH, classes=['bedroom_train'],
-#                     transform=transforms.Compose([
-#                     transforms.Resize(X_DIM),
-#                     transforms.CenterCrop(X_DIM),
-#                     transforms.ToTensor(),
-#                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-#                     ]))
-
-assert dataset
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE,
-                                         shuffle=True, num_workers=4)
-
 device = torch.device("cuda:0" if CUDA else "cpu")
-
-
-def weights_init(m):
-    """custom weights initialization
-    """
-    classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
-        m.weight.data.normal_(0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
-        m.weight.data.normal_(1.0, 0.02)
-        m.bias.data.fill_(0)
-
 
 class Generator(nn.Module):
     def __init__(self):
@@ -118,6 +82,19 @@ class Generator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
+def weights_init(m):
+    """custom weights initialization
+    """
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+
+netG = Generator().to(device)
+netG.apply(weights_init)
+print(netG)
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -146,27 +123,47 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.main(input).view(-1, 1).squeeze(1)
 
-
-netG = Generator().to(device)
-netG.apply(weights_init)
-print(netG)
-
 netD = Discriminator().to(device)
 netD.apply(weights_init)
 print(netD)
 
 criterion = nn.BCELoss()
 
-viz_noise = torch.randn(BATCH_SIZE, Z_DIM, 1, 1, device=device)
-
 optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
+
+dataset = dset.MNIST(root=DATA_PATH, download=True,
+                     transform=transforms.Compose([
+                     transforms.Resize(X_DIM),
+                     transforms.ToTensor(),
+                     transforms.Normalize((0.5,), (0.5,))
+                     ]))
+# dataset = dset.ImageFolder(root=DATA_PATH,
+#                            transform=transforms.Compose([
+#                            transforms.Resize(X_DIM),
+#                            transforms.CenterCrop(X_DIM),
+#                            transforms.ToTensor(),
+#                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+#                            ]))
+# dataset = dset.LSUN(root=DATA_PATH, classes=['bedroom_train'],
+#                     transform=transforms.Compose([
+#                     transforms.Resize(X_DIM),
+#                     transforms.CenterCrop(X_DIM),
+#                     transforms.ToTensor(),
+#                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+#                     ]))
+
+assert dataset
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE,
+                                         shuffle=True, num_workers=0)
+
+viz_noise = torch.randn(BATCH_SIZE, Z_DIM, 1, 1, device=device)
 
 for epoch in range(EPOCH_NUM):
     for i, data in enumerate(dataloader):
         x_real = data[0].to(device)
-        real_label = torch.full((x_real.size(0),), REAL_LABEL, device=device)
-        fake_label = torch.full((x_real.size(0),), FAKE_LABEL, device=device)
+        real_label = torch.full((x_real.size(0),), REAL_LABEL, device=device, dtype=torch.float)
+        fake_label = torch.full((x_real.size(0),), FAKE_LABEL, device=device, dtype=torch.float)
 
         # Update D with real data
         netD.zero_grad()

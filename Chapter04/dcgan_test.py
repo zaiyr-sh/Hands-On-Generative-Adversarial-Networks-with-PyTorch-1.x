@@ -15,13 +15,13 @@ from scipy.interpolate import interp1d
 import utils
 
 
-CUDA = True     # Change to False for CPU training
-VIZ_MODE = 0    # 0: random; 1: interpolation; 2: semantic calculation
-OUT_PATH = 'output'
+CUDA = False     # Change to False for CPU training
+VIZ_MODE = 2    # 0: random; 1: interpolation; 2: semantic calculation
+OUT_PATH = 'output_celeb'
 LOG_FILE = os.path.join(OUT_PATH, 'log.txt')
 BATCH_SIZE = 10        # Adjust this value according to your GPU memory
-IMAGE_CHANNEL = 1
-# IMAGE_CHANNEL = 3
+# IMAGE_CHANNEL = 1
+IMAGE_CHANNEL = 3
 Z_DIM = 100
 G_HIDDEN = 64
 X_DIM = 64
@@ -77,23 +77,25 @@ class Generator(nn.Module):
 
 
 netG = Generator()
-netG.load_state_dict(torch.load(os.path.join(OUT_PATH, 'netG_24.pth')))
+ckpt_path = os.path.join(OUT_PATH, 'netG_24.pth')
+state_dict = torch.load(ckpt_path, map_location=device)  # device is cpu if CUDA=False
+netG.load_state_dict(state_dict)
 netG.to(device)
 
 if VIZ_MODE == 0:
     viz_tensor = torch.randn(BATCH_SIZE, Z_DIM, 1, 1, device=device)
 elif VIZ_MODE == 1:
-    load_vector = np.loadtxt('vec_20190317-223131.txt')
+    load_vector = np.loadtxt('vec_20251226-163557.txt')
     xp = [0, 1]
     yp = np.vstack([load_vector[2], load_vector[9]])   # choose two exemplar vectors
     xvals = np.linspace(0, 1, num=BATCH_SIZE)
     sample = interp1d(xp, yp, axis=0)
     viz_tensor = torch.tensor(sample(xvals).reshape(BATCH_SIZE, Z_DIM, 1, 1), dtype=torch.float32, device=device)
 elif VIZ_MODE == 2:
-    load_vector = np.loadtxt('vec_20190317-223131.txt')
-    z1 = (load_vector[0] + load_vector[6] + load_vector[8]) / 3.
-    z2 = (load_vector[1] + load_vector[2] + load_vector[4]) / 3.
-    z3 = (load_vector[3] + load_vector[4] + load_vector[6]) / 3.
+    load_vector = np.loadtxt('vec_20251226-163557.txt')
+    z1 = (load_vector[0] + load_vector[7] + load_vector[8]) / 3.
+    z2 = (load_vector[2] + load_vector[5] + load_vector[9]) / 3.
+    z3 = (load_vector[1] + load_vector[4] + load_vector[6]) / 3.
     z_new = z1 - z2 + z3
     sample = np.zeros(shape=(BATCH_SIZE, Z_DIM))
     for i in range(BATCH_SIZE):
