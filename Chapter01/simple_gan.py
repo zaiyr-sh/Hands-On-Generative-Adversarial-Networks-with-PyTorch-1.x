@@ -290,3 +290,10 @@ for i in range(50):
     plt.plot(x_axis, x_fake.reshape(X_DIM))
 plt.ylim((-1, 1))
 plt.show()
+
+x_axis = np.linspace(0, 10, 10)
+for i in range(50):
+    x_fake = get_samples(True)
+    plt.plot(x_axis, x_fake.reshape(X_DIM))
+plt.ylim((-1, 1))
+plt.show()
