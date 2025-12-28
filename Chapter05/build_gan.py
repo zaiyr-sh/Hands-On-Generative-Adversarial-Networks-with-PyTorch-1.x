@@ -69,12 +69,10 @@ class Model(object):
         return self.netD
 
     def create_optim(self, lr, alpha=0.5, beta=0.999):
-        self.optim_G = torch.optim.Adam(filter(lambda p: p.requires_grad,
-                                        self.netG.parameters()),
+        self.optim_G = torch.optim.Adam(filter(lambda p: p.requires_grad, self.netG.parameters()),
                                         lr=lr,
                                         betas=(alpha, beta))
-        self.optim_D = torch.optim.Adam(filter(lambda p: p.requires_grad,
-                                        self.netD.parameters()),
+        self.optim_D = torch.optim.Adam(filter(lambda p: p.requires_grad, self.netD.parameters()),
                                         lr=lr,
                                         betas=(alpha, beta))
         if self.infogan:
@@ -93,7 +91,7 @@ class Model(object):
               verbose=True):
         self.netG.train()
         self.netD.train()
-        viz_z = torch.zeros((self.data_loader.batch_size, self.latent_dim), device=self.device)
+        # viz_z = torch.zeros((self.data_loader.batch_size, self.latent_dim), device=self.device)
         viz_noise = torch.randn(self.data_loader.batch_size, self.latent_dim, device=self.device)
         nrows = self.data_loader.batch_size // 8
         viz_label = torch.LongTensor(np.array([num for _ in range(nrows) for num in range(8)])).to(self.device)
