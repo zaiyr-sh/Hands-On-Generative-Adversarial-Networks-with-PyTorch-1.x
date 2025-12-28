@@ -210,7 +210,7 @@ class Model(object):
                 z_style = torch.zeros((batch_size, self.style_dim), device=self.device)
                 if mode is not None:
                     for i in range(batch_size):
-                        z_style[i, mode] = 4. * i / batch_size - 2.
+                        z_style[i, mode - 1] = 4. * i / batch_size - 2.
                 viz_sample = self.netG(viz_tensor, labels_onehot, z_style)
             else:
                 viz_tensor = torch.randn(batch_size, self.latent_dim, 1, 1, device=self.device)
@@ -239,12 +239,12 @@ class Model(object):
             name = self.name
         if verbose:
             print('\nLoading models from {}_G.pt and {}_D.pt ...'.format(name, name))
-        ckpt_G = torch.load(os.path.join(path, '{}_G.pt'.format(name)))
+        ckpt_G = torch.load(os.path.join(path, '{}_G.pt'.format(name)), map_location="cpu")
         if isinstance(ckpt_G, dict) and 'state_dict' in ckpt_G:
             self.netG.load_state_dict(ckpt_G['state_dict'], strict=True)
         else:
             self.netG.load_state_dict(ckpt_G, strict=True)
-        ckpt_D = torch.load(os.path.join(path, '{}_D.pt'.format(name)))
+        ckpt_D = torch.load(os.path.join(path, '{}_D.pt'.format(name)), map_location="cpu")
         if isinstance(ckpt_D, dict) and 'state_dict' in ckpt_D:
             self.netD.load_state_dict(ckpt_D['state_dict'], strict=True)
         else:
